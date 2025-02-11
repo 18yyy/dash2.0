@@ -11,7 +11,7 @@ import {
   Legend,
 } from 'chart.js';
 import { format } from 'date-fns';
-import { LineChart, Plus, Activity } from 'lucide-react';
+import { LineChart, Plus, Activity, Hash, Calculator, DollarSign } from 'lucide-react';
 
 ChartJS.register(
   CategoryScale,
@@ -40,6 +40,9 @@ function App() {
     setDataPoints(prev => [...prev, newDataPoint]);
     setNewValue('');
   };
+
+  const totalSum = dataPoints.reduce((sum, point) => sum + point.value, 0);
+  const realProfit = totalSum * 0.9; // Desconta 10% da soma total
 
   const chartData = {
     labels: dataPoints.map(point => format(new Date(point.timestamp), 'HH:mm:ss')),
@@ -146,6 +149,44 @@ function App() {
             <div>
               <h1 className="text-2xl font-bold text-white">Visualização de Dados</h1>
               <p className="text-gray-400 text-sm">Painel de monitoramento em tempo real</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-xl p-6">
+            <div className="flex items-center gap-3">
+              <div className="bg-indigo-500/10 p-2 rounded-lg">
+                <Hash className="w-5 h-5 text-indigo-400" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-400">Total de Registros</p>
+                <p className="text-2xl font-bold text-white">{dataPoints.length}</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-xl p-6">
+            <div className="flex items-center gap-3">
+              <div className="bg-emerald-500/10 p-2 rounded-lg">
+                <Calculator className="w-5 h-5 text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-400">Soma Total</p>
+                <p className="text-2xl font-bold text-white">{totalSum.toFixed(2)}</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-xl p-6">
+            <div className="flex items-center gap-3">
+              <div className="bg-rose-500/10 p-2 rounded-lg">
+                <DollarSign className="w-5 h-5 text-rose-400" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-400">Lucro Real (-10%)</p>
+                <p className="text-2xl font-bold text-white">{realProfit.toFixed(2)}</p>
+                <p className="text-xs text-gray-500">Desconto: {(totalSum * 0.1).toFixed(2)}</p>
+              </div>
             </div>
           </div>
         </div>
