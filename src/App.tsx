@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -28,9 +28,71 @@ interface DataPoint {
   timestamp: string;
 }
 
+// Função para obter o timestamp de expiração (12 horas a partir de agora)
+const getExpirationTime = () => {
+  const now = new Date();
+  return new Date(now.getTime() + 12 * 60 * 60 * 1000).getTime(); // 12 horas em milissegundos
+};
+
+// Função para verificar se os dados expiraram
+const hasDataExpired = (expirationTime: number) => {
+  return new Date().getTime() > expirationTime;
+};
+
+// Função para salvar dados nos cookies
+const saveDataToCookies = (data: DataPoint[], expirationTime: number) => {
+  const cookieData = {
+    data,
+    expirationTime,
+  };
+  document.cookie = `graphData=${JSON.stringify(cookieData)}; path=/; max-age=${60 * 60 * 12}`; // 12 horas
+};
+
+// Função para carregar dados dos cookies
+const loadDataFromCookies = (): { data: DataPoint[], expirationTime: number } | null => {
+  const cookies = document.cookie.split(';');
+  const graphCookie = cookies.find(cookie => cookie.trim().startsWith('graphData='));
+  
+  if (graphCookie) {
+    try {
+      const cookieValue = graphCookie.split('=')[1];
+      const cookieData = JSON.parse(decodeURIComponent(cookieValue));
+      
+      if (hasDataExpired(cookieData.expirationTime)) {
+        document.cookie = 'graphData=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        return null;
+      }
+      
+      return cookieData;
+    } catch (error) {
+      return null;
+    }
+  }
+  return null;
+};
+
 function App() {
   const [dataPoints, setDataPoints] = useState<DataPoint[]>([]);
   const [newValue, setNewValue] = useState<string>('');
+  const [expirationTime, setExpirationTime] = useState<number>(getExpirationTime());
+
+  // Carregar dados dos cookies ao iniciar
+  useEffect(() => {
+    const savedData = loadDataFromCookies();
+    if (savedData) {
+      setDataPoints(savedData.data);
+      setExpirationTime(savedData.expirationTime);
+    } else {
+      setExpirationTime(getExpirationTime());
+    }
+  }, []);
+
+  // Salvar dados nos cookies quando houver alterações
+  useEffect(() => {
+    if (dataPoints.length > 0) {
+      saveDataToCookies(dataPoints, expirationTime);
+    }
+  }, [dataPoints, expirationTime]);
 
   const addDataPoint = async (value: number) => {
     const newDataPoint = {
@@ -43,6 +105,11 @@ function App() {
 
   const totalSum = dataPoints.reduce((sum, point) => sum + point.value, 0);
   const realProfit = totalSum * 0.9; // Desconta 10% da soma total
+
+  // Calcula o tempo restante para expiração
+  const timeUntilExpiration = Math.max(0, expirationTime - new Date().getTime());
+  const hoursRemaining = Math.floor(timeUntilExpiration / (1000 * 60 * 60));
+  const minutesRemaining = Math.floor((timeUntilExpiration % (1000 * 60 * 60)) / (1000 * 60));
 
   const chartData = {
     labels: dataPoints.map(point => format(new Date(point.timestamp), 'HH:mm:ss')),
@@ -150,6 +217,9 @@ function App() {
               <h1 className="text-2xl font-bold text-white">Visualização de Dados</h1>
               <p className="text-gray-400 text-sm">Painel de monitoramento em tempo real</p>
             </div>
+          </div>
+          <div className="text-sm text-gray-400">
+            Reinicia em: <span className="font-medium text-sky-400">{hoursRemaining}h {minutesRemaining}m</span>
           </div>
         </div>
 
